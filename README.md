@@ -5,16 +5,7 @@
 
 ---
 
-## 📜 **Table of Contents**
 
-1. [Introduction](#introduction)
-2. [Tech Stack](#tech-stack)
-3. [Features](#features)
-4. [Setup and Installation](#setup-and-installation)
-5. [Usage](#usage)
-6. [Screenshots](#screenshots)
-7. [Contributing](#contributing)
-8. [License](#license)
 
 ---
 
