@@ -12,25 +12,25 @@ export const revalidate = 0;
 
 export async function GET(request: Request) {
   try {
-    connectToDB();
+    await connectToDB(); // Ensure DB connection is awaited
 
     const products = await Product.find({});
 
-    if (!products) throw new Error("No product fetched");
+    if (!products || products.length === 0) {
+      return NextResponse.json({ message: "No products found" }, { status: 404 });
+    }
 
-    // ======================== 1 SCRAPE LATEST PRODUCT DETAILS & UPDATE DB
+    // ======================== 1. SCRAPE LATEST PRODUCT DETAILS & UPDATE DB
     const updatedProducts = await Promise.all(
       products.map(async (currentProduct) => {
         // Scrape product
         const scrapedProduct = await scrapeAmazonProduct(currentProduct.url);
 
-        if (!scrapedProduct) return;
+        if (!scrapedProduct) return currentProduct; // Return original if scraping fails
 
         const updatedPriceHistory = [
           ...currentProduct.priceHistory,
-          {
-            price: scrapedProduct.currentPrice,
-          },
+          { price: scrapedProduct.currentPrice },
         ];
 
         const product = {
@@ -41,30 +41,20 @@ export async function GET(request: Request) {
           averagePrice: getAveragePrice(updatedPriceHistory),
         };
 
-        // Update Products in DB
+        // Update product in DB
         const updatedProduct = await Product.findOneAndUpdate(
-          {
-            url: product.url,
-          },
-          product
+          { url: product.url },
+          product,
+          { new: true } // Ensure it returns the updated document
         );
 
-        // ======================== 2 CHECK EACH PRODUCT'S STATUS & SEND EMAIL ACCORDINGLY
-        const emailNotifType = getEmailNotifType(
-          scrapedProduct,
-          currentProduct
-        );
+        // ======================== 2. CHECK EACH PRODUCT'S STATUS & SEND EMAIL
+        const emailNotifType = getEmailNotifType(scrapedProduct, currentProduct);
 
-        if (emailNotifType && updatedProduct.users.length > 0) {
-          const productInfo = {
-            title: updatedProduct.title,
-            url: updatedProduct.url,
-          };
-          // Construct emailContent
+        if (emailNotifType && updatedProduct?.users?.length > 0) {
+          const productInfo = { title: updatedProduct.title, url: updatedProduct.url };
           const emailContent = await generateEmailBody(productInfo, emailNotifType);
-          // Get array of user emails
           const userEmails = updatedProduct.users.map((user: any) => user.email);
-          // Send email notification
           await sendEmail(emailContent, userEmails);
         }
 
@@ -73,11 +63,13 @@ export async function GET(request: Request) {
     );
 
     return NextResponse.json({
-      message: "Ok",
+      message: "Products updated successfully",
       data: updatedProducts,
     });
   } catch (error: any) {
-    throw new Error(`Failed to get all products: ${error.message}`);
+    return NextResponse.json({ error: `Failed to fetch products: ${error.message}` }, { status: 500 });
   }
 }
-export {}; // Add this at the top (or bottom) of the file
+
+// Ensure TypeScript treats this file as a module
+export {};
