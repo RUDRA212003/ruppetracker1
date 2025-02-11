@@ -72,4 +72,4 @@ export async function GET(request: Request) {
 }
 
 // Ensure TypeScript treats this file as a module
-export {};
+export {GET};
