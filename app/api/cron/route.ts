@@ -6,13 +6,13 @@ import Product from "@/lib/models/product.model";
 import { scrapeAmazonProduct } from "@/lib/scraper";
 import { generateEmailBody, sendEmail } from "@/lib/nodemailer";
 
-export const maxDuration = 300;
+export const maxDuration = 300; // This function can run for a maximum of 300 seconds
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(request: Request) {
   try {
-    await connectToDB(); // Ensure DB connection is awaited
+    await connectToDB();
 
     const products = await Product.find({});
 
@@ -20,10 +20,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "No products found" }, { status: 404 });
     }
 
-    // ======================== 1. SCRAPE LATEST PRODUCT DETAILS & UPDATE DB
     const updatedProducts = await Promise.all(
       products.map(async (currentProduct) => {
         const scrapedProduct = await scrapeAmazonProduct(currentProduct.url);
+
         if (!scrapedProduct) return currentProduct;
 
         const updatedPriceHistory = [
@@ -45,7 +45,6 @@ export async function GET(request: Request) {
           { new: true }
         );
 
-        // ======================== 2. CHECK EACH PRODUCT'S STATUS & SEND EMAIL
         const emailNotifType = getEmailNotifType(scrapedProduct, currentProduct);
 
         if (emailNotifType && updatedProduct?.users?.length > 0) {
@@ -67,3 +66,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `Failed to fetch products: ${error.message}` }, { status: 500 });
   }
 }
+
+// ✅ This fixes the "not a module" error
+export default {}; 
