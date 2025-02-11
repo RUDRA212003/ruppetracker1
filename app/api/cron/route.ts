@@ -6,7 +6,7 @@ import Product from "@/lib/models/product.model";
 import { scrapeAmazonProduct } from "@/lib/scraper";
 import { generateEmailBody, sendEmail } from "@/lib/nodemailer";
 
-export const maxDuration = 300; // This function can run for a maximum of 300 seconds
+export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -23,10 +23,8 @@ export async function GET(request: Request) {
     // ======================== 1. SCRAPE LATEST PRODUCT DETAILS & UPDATE DB
     const updatedProducts = await Promise.all(
       products.map(async (currentProduct) => {
-        // Scrape product
         const scrapedProduct = await scrapeAmazonProduct(currentProduct.url);
-
-        if (!scrapedProduct) return currentProduct; // Return original if scraping fails
+        if (!scrapedProduct) return currentProduct;
 
         const updatedPriceHistory = [
           ...currentProduct.priceHistory,
@@ -41,11 +39,10 @@ export async function GET(request: Request) {
           averagePrice: getAveragePrice(updatedPriceHistory),
         };
 
-        // Update product in DB
         const updatedProduct = await Product.findOneAndUpdate(
           { url: product.url },
           product,
-          { new: true } // Ensure it returns the updated document
+          { new: true }
         );
 
         // ======================== 2. CHECK EACH PRODUCT'S STATUS & SEND EMAIL
@@ -70,6 +67,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `Failed to fetch products: ${error.message}` }, { status: 500 });
   }
 }
-
-// Ensure TypeScript treats this file as a module
-export {GET};
