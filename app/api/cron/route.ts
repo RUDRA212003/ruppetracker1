@@ -80,3 +80,4 @@ export async function GET(request: Request) {
     throw new Error(`Failed to get all products: ${error.message}`);
   }
 }
+export {}; // Add this at the top (or bottom) of the file
